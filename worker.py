@@ -39,7 +39,7 @@ worker_config = WorkerConfig(
             workload_calculator=lambda payload: 10000.0,
             benchmark_config=BenchmarkConfig(
                 generator=lambda: {"workflow_json": {}},
-                runs=0,
+                runs=1,
                 concurrency=1,
             ),
         )
