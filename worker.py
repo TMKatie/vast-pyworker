@@ -5,15 +5,15 @@ PyWorker проксирует запросы на API Server (порт 18288),
 который выполняет workflow, загружает результаты и возвращает base64/S3 URLs.
 """
 
-# Monkey-patch aiohttp Application для увеличения лимита тела запроса.
-# ВАЖНО: патч должен быть ДО импорта vastai, т.к. vastai может создать
-# aiohttp.Application при импорте. По умолчанию лимит 1MB, нужно ~200MB.
-import aiohttp.web
-_orig_app_init = aiohttp.web.Application.__init__
-def _patched_app_init(self, *args, **kwargs):
-    kwargs["client_max_size"] = 200 * 1024 * 1024  # 200MB (override, not setdefault)
-    _orig_app_init(self, *args, **kwargs)
-aiohttp.web.Application.__init__ = _patched_app_init
+# Monkey-patch на уровне BaseRequest — переопределяем _client_max_size после init,
+# чтобы обойти любые ограничения, заданные vastai SDK на уровне Application.
+# Патч должен быть ДО импорта vastai.
+import aiohttp.web_request as _awr
+_orig_base_request_init = _awr.BaseRequest.__init__
+def _patched_base_request_init(self, *args, **kwargs):
+    _orig_base_request_init(self, *args, **kwargs)
+    self._client_max_size = 200 * 1024 * 1024  # 200MB
+_awr.BaseRequest.__init__ = _patched_base_request_init
 
 from vastai import Worker, WorkerConfig, HandlerConfig, LogActionConfig, BenchmarkConfig
 
