@@ -5,16 +5,17 @@ PyWorker проксирует запросы на API Server (порт 18288),
 который выполняет workflow, загружает результаты и возвращает base64/S3 URLs.
 """
 
-from vastai import Worker, WorkerConfig, HandlerConfig, LogActionConfig, BenchmarkConfig
-
-# Monkey-patch aiohttp Application для увеличения лимита тела запроса
-# По умолчанию 1MB, нужно ~200MB для base64 видео
+# Monkey-patch aiohttp Application для увеличения лимита тела запроса.
+# ВАЖНО: патч должен быть ДО импорта vastai, т.к. vastai может создать
+# aiohttp.Application при импорте. По умолчанию лимит 1MB, нужно ~200MB.
 import aiohttp.web
 _orig_app_init = aiohttp.web.Application.__init__
 def _patched_app_init(self, *args, **kwargs):
-    kwargs.setdefault("client_max_size", 200 * 1024 * 1024)  # 200MB
+    kwargs["client_max_size"] = 200 * 1024 * 1024  # 200MB (override, not setdefault)
     _orig_app_init(self, *args, **kwargs)
 aiohttp.web.Application.__init__ = _patched_app_init
+
+from vastai import Worker, WorkerConfig, HandlerConfig, LogActionConfig, BenchmarkConfig
 
 MODEL_SERVER_URL = "http://127.0.0.1"
 MODEL_SERVER_PORT = 18288
