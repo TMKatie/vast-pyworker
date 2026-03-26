@@ -7,6 +7,15 @@ PyWorker проксирует запросы на API Server (порт 18288),
 
 from vastai import Worker, WorkerConfig, HandlerConfig, LogActionConfig, BenchmarkConfig
 
+# Monkey-patch aiohttp Application для увеличения лимита тела запроса
+# По умолчанию 1MB, нужно ~200MB для base64 видео
+import aiohttp.web
+_orig_app_init = aiohttp.web.Application.__init__
+def _patched_app_init(self, *args, **kwargs):
+    kwargs.setdefault("client_max_size", 200 * 1024 * 1024)  # 200MB
+    _orig_app_init(self, *args, **kwargs)
+aiohttp.web.Application.__init__ = _patched_app_init
+
 MODEL_SERVER_URL = "http://127.0.0.1"
 MODEL_SERVER_PORT = 18288
 MODEL_LOG_FILE = "/var/log/portal/comfyui.log"
